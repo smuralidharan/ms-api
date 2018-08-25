@@ -1,0 +1,24 @@
+<script type="text/javascript">
+daysDiff = function daysDiff(start_time, end_time)
+{
+	var start_time = new Date(start_time);
+	var end_time = new Date(end_time);
+	var start_ts = start_time.getTime();
+	var end_ts = end_time.getTime();
+	var diff = end_ts - start_ts;
+	return Math.round(diff/86400);
+}
+dateDiff = function(start_time, end_time) 
+{
+	date_future = new Date(end_time);
+    date_now = new Date(start_time);
+    seconds = Math.floor((date_future - (date_now))/1000);
+    minutes = Math.floor(seconds/60);
+    hours = Math.floor(minutes/60);
+    days = Math.floor(hours/24);
+    hours = hours-(days*24);
+    minutes = minutes-(days*24*60)-(hours*60);
+    seconds = seconds-(days*24*60*60)-(hours*60*60)-(minutes*60);
+    return days+" days,"+hours+" hours,"+minutes+" minutes,"+seconds+" seconds";
+}
+</script>

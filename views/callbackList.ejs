@@ -1,0 +1,96 @@
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.2/css/font-awesome.css" />
+<%
+function dateDiff(start_time, end_time) 
+{
+	date_future = new Date(end_time);
+    date_now = new Date(start_time);
+    seconds = Math.floor((date_future - (date_now))/1000);
+    minutes = Math.floor(seconds/60);
+    hours = Math.floor(minutes/60);
+    days = Math.floor(hours/24);
+    hours = hours-(days*24);
+    minutes = minutes-(days*24*60)-(hours*60);
+    seconds = seconds-(days*24*60*60)-(hours*60*60)-(minutes*60);
+    return days+" days,"+hours+" hours,"+minutes+" minutes,"+seconds+" seconds";
+}
+function daysDiff(start_time, end_time)
+{
+	var start_time = new Date(start_time);
+	var end_time = new Date(end_time);
+	var start_ts = start_time.getTime();
+	var end_ts = end_time.getTime();
+	var diff = end_ts - start_ts;
+	return Math.round(diff/86400);
+}
+%>
+<table border="0" width="100%" class="table table-striped">
+<tr>
+	<th>Host</th>
+	<th>Arranged By</th>
+	<th>Department</th>
+	<th>Assigned To</th>
+	<th>Accepted to call by</th>
+	<th>Callback notes</th>
+	<th>Callback time</th>
+	<th>Callback Status</th>
+	<th>Overdue</th>
+	<th>Action Log</th>
+</tr>
+<% if (data) { %>
+<% data.forEach(function(user){ 
+var original_doit_time = new Date(user.original_doit_time);
+if(original_doit_time.getTime() < Date.now()) {
+    overdue = dateDiff(user.original_doit_time, new Date);
+    overdue_color = "color:red;";
+}else{
+    overdue = "-";
+    overdue_color = "";
+}
+if(user.status != 'ACTIVE'){
+	complete_status = 'Callback COMPLETED';
+	done_time= daysDiff(user.original_doit_time, user.done_time);
+	done_time = done_time+' days ';
+	overdue = "-";
+} else {
+	complete_status = '';
+	done_time='';
+}
+%>
+	<tr>
+		<td style="text-align:center;"><%= user.host %></td>
+		<td style="text-align:center;vertical-align:middle;"><%= user.sent_by%></td>
+		<td style="text-align:center;vertical-align:middle;"><%= user.department%></td>
+		<td style="text-align:center;vertical-align:middle;"><%= user.first_user%></td>
+		<td style="text-align:center;vertical-align:middle;">
+			<% if(user.user_accepted != '') { 
+				 user.user_accepted 
+			} else { %> - <% } %>
+		<td style="vertical-align:middle;"><%= user.notes%></td>
+		<td style="text-align:center;">
+			<p><strong>Callback time: </strong><%= user.original_doit_time%></p>
+			<p><strong>Completed time: </strong><%= user.done_time%></p>
+		</td>
+		<% if(daysDiff(user.original_doit_time, user.done_time) <= 1) { %>
+			<td style="text-align:center;color:green;vertical-align:middle;">
+				<p><%= done_time %></p>
+				<p><%= complete_status %></p>
+				<p><%= user.task_status %></p>
+			</td>
+		<% } else { %>
+			<td style="text-align:center;color:red;vertical-align:middle;">
+				<p><%= done_time %></p>
+				<p><%= complete_status %></p>
+				<p><%= user.task_status %></p>
+			</td>
+		<% } %>
+		</td>
+		<td style="text-align:center;<%= overdue_color %>"><%= overdue %></td>
+		<td style="text-align:center;vertical-align:middle;">
+			<button class="lightbox btn btn-default btn-xs" href="ajaxCalls/callbacks/callback_actions.php?reminder_id=53110lightbox[iframe]=true&amp;lightbox[width]=60p&amp;lightbox[height]=80p&amp;lightbox[modal]=true'"><i class="fa fa-list" aria-hidden="true"></i></button>
+		</td>
+	</tr>
+<% }) %>
+<% } %>
+
+</table>

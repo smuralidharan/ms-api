@@ -1,4 +1,4 @@
-/*
+
 var config = {
 	database: {
 		host:	  'localhost', 	// database host
@@ -8,7 +8,8 @@ var config = {
 		db: 	  'foxy_project56' 		// your database name
 	}
 }
-*/
+
+/*
 var config = {
 	database: {
 		host:	  'localhost', 	// database host
@@ -17,5 +18,5 @@ var config = {
 		port: 	  33060, 		// default MySQL port
 		db: 	  'foxy_project56' 		// your database name
 	}
-}
+}*/
 module.exports = config

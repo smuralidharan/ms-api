@@ -6,6 +6,10 @@ app.get("/", function(req, res, next) {
 		start = req.query.start;
 	var draw = req.query.draw;
 	var total_results_count = 10;
+	var order_by = req.query.order;
+	// var order_by_val = order_by[0].dir;
+	// var order_by_col = order_by[0].column;
+	// console.log(order_by_col);
 	//start = 0;
 	req.getConnection(function(error, conn) {
 		var qry = conn.query("SELECT SQL_CALC_FOUND_ROWS mbr.id,mbr.original_doit_time,mbr.tbl_id,mbr.user,mbr.status,mbr.host,mbr.notes, mbr.done_time,md.department_name as department from manage_button_reminders mbr JOIN manage_users mu on mbr.user=mu.user JOIN manage_departments md on mu.department = md.department_id where mbr.reason='callback' AND YEAR(mbr.`original_doit_time`) > '2015' LIMIT "+start+", 10", function(err, results, fields)
@@ -33,7 +37,7 @@ app.get("/", function(req, res, next) {
 			var task_status_qry = conn.query("SELECT 1 FROM manage_task_details mtd JOIN manage_tasks mt on mt.id = mtd.task_id WHERE mtd.task_id = '"+results[count].tbl_id+"' AND mt.done='completed' LIMIT 1", function(err, taskresults, fields) 
 			{
 				if(taskresults.length)
-					results[count].task_status = "taskresults completed";
+					results[count].task_status = "Task completed";
 				else
 					results[count].task_status = "Task pending";
 				count++;
@@ -104,6 +108,13 @@ app.get("/", function(req, res, next) {
 			return Math.round(diff/86400);
 		}
 
+		function info_links(host)
+		{
+			var url = "http://"+host;
+			var info_links = "<p><a href='generate_login.php?host="+host+"&src=vieworders.php?link=v1' title='Client Admin' target='_new'><span class='glyphicon glyphicon-log-in'></span></a>&nbsp;&nbsp;&nbsp;<a href="+url+" target='_new'><span class='glyphicon glyphicon-globe' title='Client Website'></span></a>&nbsp;&nbsp;&nbsp;<a href='over_view.php?all="+host+"#top' title='Clients Profile' target='_new'><span class='glyphicon glyphicon-home'></span></a></p>";
+			return info_links;
+		}
+
 		function dateDiff(start_time, end_time) 
 		{
 			date_future = new Date(end_time);
@@ -143,12 +154,26 @@ app.get("/", function(req, res, next) {
 		        	var original_doit_time = '';
 		        	var callback_status = '';
 		        	var last_button = '';
+		        	var host_msg = '';
 		        	
 		        	for(i=0; i<results.length; i++) {
 		        		var resp_data = [];
 		        		var formed_data = {};
-		        		var callback_time = "<p><strong>Callback time: </strong>"+results[i].original_doit_time+"</p>";
-		        		callback_time += "<p><strong>Completed time: </strong>"+results[i].done_time+"</p>";
+		        		var original_callback_time = results[i].original_doit_time;
+		        		var original_callback_time = ("0" + original_callback_time.getDate()).slice(-2) + "-" + ("0"+(original_callback_time.getMonth()+1)).slice(-2) + "-" +original_callback_time.getFullYear() + " " + ("0" + original_callback_time.getHours()).slice(-2) + ":" + ("0" + original_callback_time.getMinutes()).slice(-2) + ":" + ("0" + original_callback_time.getSeconds()).slice(-2);
+
+		        		var callback_time = "<p><strong>Callback time: </strong>"+original_callback_time+"</p>";
+
+		        		var original_done_time = results[i].done_time;
+		        		if(original_done_time != '0000-00-00 00:00:00')
+		        		{
+		        			var original_done_time = ("0" + original_done_time.getDate()).slice(-2) + "-" + ("0"+(original_done_time.getMonth()+1)).slice(-2) + "-" +original_done_time.getFullYear() + " " + ("0" + original_done_time.getHours()).slice(-2) + ":" + ("0" + original_done_time.getMinutes()).slice(-2) + ":" + ("0" + original_done_time.getSeconds()).slice(-2);
+		        		}
+		        		//var original_done_time = ("0" + original_done_time.getDate()).slice(-2) + "-" + ("0"+(original_done_time.getMonth()+1)).slice(-2) + "-" +original_done_time.getFullYear() + " " + ("0" + original_done_time.getHours()).slice(-2) + ":" + ("0" + original_done_time.getMinutes()).slice(-2) + ":" + ("0" + original_done_time.getSeconds()).slice(-2);
+
+
+
+		        		callback_time += "<hr><p><strong>Completed time: </strong>"+original_done_time+"</p>";
 		        		if(results[i].status != 'ACTIVE')
 		        		{
 		        			complete_status = 'Callback COMPLETED';
@@ -173,8 +198,10 @@ app.get("/", function(req, res, next) {
 						    overdue = "-";
 						    overdue_color = "";
 						}
-						last_button = "<button class='lightbox btn btn-default btn-xs' href='ajaxCalls/callbacks/callback_actions.php?reminder_id="+results[i].id+"&lightbox[iframe]=true&amp;lightbox[width]=60p&amp;lightbox[height]=80p&amp;lightbox[modal]=true'><i class='fa fa-list' aria-hidden='true'></i></button>"
-		        		resp_data.push(results[i].host);
+						last_button = "<button class='lightbox btn btn-default btn-xs' href='ajaxCalls/callbacks/callback_actions.php?reminder_id="+results[i].id+"&lightbox[iframe]=true&amp;lightbox[width]=60p&amp;lightbox[height]=80p&amp;lightbox[modal]=true'><i class='fa fa-list' aria-hidden='true'></i></button>";
+						host_msg = results[i].host;
+						host_msg += info_links(results[i].host);
+		        		resp_data.push(host_msg);
 		        		resp_data.push(results[i].sent_by);
 		        		resp_data.push(results[i].department);
 		        		resp_data.push(results[i].first_user);

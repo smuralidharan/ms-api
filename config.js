@@ -1,4 +1,5 @@
-
+/* Staging Access */
+/* 
 var config = {
 	database: {
 		host:	  'localhost', 	// database host
@@ -8,7 +9,8 @@ var config = {
 		db: 	  'foxy_project56' 		// your database name
 	}
 }
-
+*/
+/* Local Access */
 /*
 var config = {
 	database: {
@@ -18,5 +20,16 @@ var config = {
 		port: 	  33060, 		// default MySQL port
 		db: 	  'foxy_project56' 		// your database name
 	}
-}*/
+}
+*/
+/* Live Access */
+var config = {
+	database: {
+		host:	  'web-app-db.cuf10uh9d9r6.eu-west-2.rds.amazonaws.com', 	// database host
+		user: 	  'ms_db_user', 		// your database username
+		password: '27ZB[6(p,hv5,;E?', 		// your database password
+		port: 	  33060, 		// default MySQL port
+		db: 	  'foxy_project56' 		// your database name
+	}
+}
 module.exports = config

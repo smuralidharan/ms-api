@@ -131,10 +131,10 @@ app.get("/", function(req, res, next) {
 
 		function getUserAccepted(count, results, callbacks)
 		{
-			var accepted_user_qry = conn.query("select `user` from manage_callback_v2_log where reminder_id='"+results[count].id+"' and status='ACCEPT' limit 1", function(err, resultAcceptedUser, fields)
+			var accepted_user_qry = conn.query("select `user` AS useraccepted from manage_callback_v2_log where reminder_id='"+results[count].id+"' and status='ACCEPT' limit 1", function(err, resultAcceptedUser, fields)
 			{
 				if(resultAcceptedUser.length)
-					results[count].user_accepted = resultAcceptedUser[0].user;
+					results[count].user_accepted = resultAcceptedUser[0].useraccepted;
 				else
 					results[count].user_accepted = "";
 				count++;

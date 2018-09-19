@@ -136,7 +136,7 @@ app.get("/", function(req, res, next) {
 				if(resultAcceptedUser.length)
 					results[count].user_accepted = resultAcceptedUser[0].useraccepted;
 				else
-					results[count].user_accepted = "";
+					results[count].user_accepted = resultAcceptedUser[count].useraccepted;
 				count++;
 		        if (count < results.length) {
 		            getUserAccepted(count, results, callback);

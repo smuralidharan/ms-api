@@ -12,7 +12,7 @@ app.get("/", function(req, res, next) {
 	// console.log(order_by_col);
 	//start = 0;
 	req.getConnection(function(error, conn) {
-		var qry = conn.query("SELECT SQL_CALC_FOUND_ROWS mbr.id,mbr.original_doit_time,mbr.tbl_id,mbr.user,mbr.status,mbr.host,mbr.notes, mbr.done_time,md.department_name as department from manage_button_reminders mbr JOIN manage_users mu on mbr.user=mu.user JOIN manage_departments md on mu.department = md.department_id where mbr.reason='callback' AND YEAR(mbr.`original_doit_time`) > '2017' LIMIT "+start+", 10", function(err, results, fields)
+		var qry = conn.query("SELECT SQL_CALC_FOUND_ROWS mbr.id,mbr.original_doit_time,mbr.tbl_id,mbr.user,mbr.status,mbr.host,mbr.notes, mbr.done_time,md.department_name as department from manage_button_reminders mbr JOIN manage_users mu on mbr.user=mu.user JOIN manage_departments md on mu.department = md.department_id where mbr.reason='callback' AND YEAR(mbr.`original_doit_time`) > '2017' ORDER BY id DESC LIMIT "+start+", 10", function(err, results, fields)
 		{
 			if(err)
 			{
@@ -136,7 +136,7 @@ app.get("/", function(req, res, next) {
 				if(resultAcceptedUser.length)
 					results[count].user_accepted = resultAcceptedUser[0].useraccepted;
 				else
-					results[count].user_accepted = resultAcceptedUser[count].useraccepted;
+					results[count].user_accepted = results[count].useraccepted;
 				count++;
 		        if (count < results.length) {
 		            getUserAccepted(count, results, callback);

@@ -1,18 +1,98 @@
 var express = require('express')
+var url = require('url')
 var app = express()
+var queryString = require('query-string');
 app.get("/", function(req, res, next) {
 	var start = 0;
+	var page = 0;
 	if(req.query.start !== undefined)
 		start = req.query.start;
 	var draw = req.query.draw;
-	var total_results_count = 10;
-	var order_by = req.query.order;
-	// var order_by_val = order_by[0].dir;
-	// var order_by_col = order_by[0].column;
-	// console.log(order_by_col);
+	let total_results_count = 0;
+	var sort_by_col = req.query.col;
+	var size = req.query.size;
+	page = req.query.page;
+	var order_by = "ORDER BY id DESC";
+	var search_by_val = "1";
+	if(page > 0)
+	{
+		page = parseInt((page * 10)) + parseInt(1); 
+	}
+	/* Parse search url starts */
+	var resp = url.parse(req.url);
+	var query_resp = resp['query'].split("&");
+	for(i in query_resp)
+	{
+		re = /\[(.*)\]/i;
+		var qry_val = query_resp[i];
+		if(qry_val.includes("fcol["))
+		{
+			var result = qry_val.match(re);
+			if(result)
+			{
+				var search_arr = qry_val.split("=");
+				
+
+				if(result[0] == "[0]")
+				{
+					var search_by_col_host = search_arr[1];
+				}
+				else if(result[0] == "[2]")
+				{
+					var search_by_col_department = search_arr[1];
+				}
+				else if(result[0] == "[5]")
+				{
+					var search_by_col_callback_notes = search_arr[1];
+				}
+			}
+		}
+	}
+	/* Parse search url ends */
+
+
+
+	if(sort_by_col[0] !== undefined)
+	{
+		var order_by_val = (sort_by_col[0] == 0) ? "ASC" : "DESC";
+		order_by = " ORDER BY host "+order_by_val;
+	}
+	if(sort_by_col[2] !== undefined)
+	{
+		var order_by_val = (sort_by_col[2] == 0) ? "ASC" : "DESC";
+		order_by = " ORDER BY department_name "+order_by_val;
+	}
+	if(sort_by_col[5] !== undefined)
+	{
+		var order_by_val = (sort_by_col[5] == 0) ? "ASC" : "DESC";
+		order_by = " ORDER BY notes "+order_by_val;
+	}
+	if(sort_by_col[6] !== undefined)
+	{
+		var order_by_val = (sort_by_col[6] == 0) ? "ASC" : "DESC";
+		order_by = " ORDER BY original_doit_time "+order_by_val;
+	}
+	if(sort_by_col[8] !== undefined)
+	{
+		var order_by_val = (sort_by_col[8] == 0) ? "ASC" : "DESC";
+		order_by = " ORDER BY original_doit_time "+order_by_val;
+	}
+	if(search_by_col_host !== undefined)
+	{
+		search_by_val = " mbr.host LIKE '%"+search_by_col_host+"%'";
+	}
+	if(search_by_col_department !== undefined)
+	{
+		search_by_val = " md.department_name LIKE '%"+search_by_col_department+"%'";
+	}
+	if(search_by_col_callback_notes !== undefined)
+	{
+		search_by_val = " mbr.notes LIKE '%"+search_by_col_callback_notes+"%'";
+	}
+
 	//start = 0;
 	req.getConnection(function(error, conn) {
-		var qry = conn.query("SELECT SQL_CALC_FOUND_ROWS mbr.id,mbr.original_doit_time,mbr.tbl_id,mbr.user,mbr.status,mbr.host,mbr.notes, mbr.done_time,md.department_name as department from manage_button_reminders mbr JOIN manage_users mu on mbr.user=mu.user JOIN manage_departments md on mu.department = md.department_id where mbr.reason='callback' AND YEAR(mbr.`original_doit_time`) > '2017' ORDER BY id DESC LIMIT "+start+", 10", function(err, results, fields)
+		var qry = conn.query("SELECT SQL_CALC_FOUND_ROWS mbr.id,mbr.original_doit_time,mbr.tbl_id,mbr.user,mbr.status,mbr.host,mbr.notes, mbr.done_time,md.department_name as department from manage_button_reminders mbr JOIN manage_users mu on mbr.user=mu.user JOIN manage_departments md on mu.department = md.department_id where "+search_by_val+" AND mbr.reason='callback' AND YEAR(mbr.`original_doit_time`) > '2017'  "+order_by+" LIMIT "+page+", "+size, function(err, results, fields)
 		{
 			if(err)
 			{
@@ -24,16 +104,28 @@ app.get("/", function(req, res, next) {
 					if(newresults.length)
 					{
 						total_results_count = newresults[0].cnt;
+						var count = 0;
+						var callback = [];
+						if(total_results_count > 0)
+						{
+							getTaskStatus(count, results, callback);
+
+						}
+						else
+						{
+							var final_response = {};
+							final_response['total_rows'] = 0;
+				        	final_response['headers'] = ["Host", "Arranged_By", "Department", "Assigned_To", "Accepted_to_call_by", "Callback_notes", "Callback_time", "Callback_Status", "Overdue", "Action_log"];
+				      		final_response['rows'] = [];
+		    				res.jsonp(final_response);
+						}
 					}
 				});
-				var count = 0;
-				var callback = [];
-				getTaskStatus(count, results, callback);
 			} 
 		}); 
 		
 		function getTaskStatus(count, results, callback)
-		{
+		{	
 			var task_status_qry = conn.query("SELECT 1 FROM manage_task_details mtd JOIN manage_tasks mt on mt.id = mtd.task_id WHERE mtd.task_id = '"+results[count].tbl_id+"' AND mt.done='completed' LIMIT 1", function(err, taskresults, fields) 
 			{
 				if(taskresults.length)
@@ -57,8 +149,44 @@ app.get("/", function(req, res, next) {
 
 		function getSentBy(count, results, callbacks)
 		{
-			var assigned_by_qry = conn.query("SELECT `task_details_id`, `callback_assignedBy` AS `sentby` FROM manage_callback_assign WHERE reminder_id = "+results[count].id, function(err, assignedresults, fields) 
+			var sort_by_col = req.query.col;
+			var search_by_col = req.query.fcol;
+
+			var order_by = "";
+			var search_by_val = "1";
+
+			if(sort_by_col[1] !== undefined)
 			{
+				var order_by_val = (sort_by_col[1] == 0) ? "ASC" : "DESC";
+				order_by = " ORDER BY sentby "+order_by_val;
+			}
+			var resp = url.parse(req.url);
+			var query_resp = resp['query'].split("&");
+			for(i in query_resp)
+			{
+				re = /\[(.*)\]/i;
+				var qry_val = query_resp[i];
+				if(qry_val.includes("fcol["))
+				{
+					var result = qry_val.match(re);
+					if(result)
+					{
+						var search_arr = qry_val.split("=");
+						if(result[1] == '1')
+						{
+							var search_by_col_arranged_by = search_arr[1];
+						}
+					}
+				}
+			}
+			if(search_by_col_arranged_by !== undefined)
+			{
+				search_by_val = "  callback_assignedBy LIKE '%"+search_by_col_arranged_by+"%'";
+			}
+
+			var assigned_by_qry = conn.query("SELECT `task_details_id`, `callback_assignedBy` AS `sentby` FROM manage_callback_assign WHERE "+search_by_val+" AND reminder_id = "+results[count].id+" "+order_by, function(err, assignedresults, fields) 
+			{
+
 				if(assignedresults.length)
 					results[count].sent_by = assignedresults[0].sentby;
 				else
@@ -70,6 +198,15 @@ app.get("/", function(req, res, next) {
 		        else {
 		        	var sentbycount = 0;
 		        	var callback = [];
+		        	if(!assignedresults.length && search_by_col_arranged_by !== undefined)
+					{
+						var final_response = {};
+						final_response['total_rows'] = 0;
+			        	final_response['headers'] = ["Host", "Arranged_By", "Department", "Assigned_To", "Accepted_to_call_by", "Callback_notes", "Callback_time", "Callback_Status", "Overdue", "Action_log"];
+			      		final_response['rows'] = [];
+						res.jsonp(final_response);
+						return false;
+					}
 		            // do something that you need to do after this
 		            getFirstUser(sentbycount, results, callback);
 		            //callbacks(results);
@@ -79,7 +216,40 @@ app.get("/", function(req, res, next) {
 
 		function getFirstUser(count, results, callbacks)
 		{
-			var first_user_qry = conn.query("select `user` from manage_callback_v2_log where reminder_id='"+results[count].id+"' and user_status='OWNER' limit 1", function(err, resultFirstUser, fields)
+			var sort_by_col = req.query.col;
+			var order_by = "";
+			var search_by_val = "1";
+			if(sort_by_col[3] !== undefined)
+			{
+				var order_by_val = (sort_by_col[3] == 0) ? "ASC" : "DESC";
+				order_by = " ORDER BY user "+order_by_val;
+			}
+
+			var resp = url.parse(req.url);
+			var query_resp = resp['query'].split("&");
+			for(i in query_resp)
+			{
+				re = /\[(.*)\]/i;
+				var qry_val = query_resp[i];
+				if(qry_val.includes("fcol["))
+				{
+					var result = qry_val.match(re);
+					if(result)
+					{
+						var search_arr = qry_val.split("=");
+						if(result[0] == 3)
+						{
+							var search_by_col_assigned_to = search_arr[1];
+						}
+					}
+				}
+			}
+
+			if(search_by_col_assigned_to !== undefined)
+			{
+				search_by_val = " user LIKE '%"+search_by_col_assigned_to+"%'";
+			}
+			var first_user_qry = conn.query("select `user` from manage_callback_v2_log where "+search_by_val+" AND reminder_id='"+results[count].id+"' and user_status='OWNER'"+order_by+" limit 1", function(err, resultFirstUser, fields)
 			{
 				if(resultFirstUser.length)
 					results[count].first_user = resultFirstUser[0].user;
@@ -131,12 +301,44 @@ app.get("/", function(req, res, next) {
 
 		function getUserAccepted(count, results, callbacks)
 		{
-			var accepted_user_qry = conn.query("select `user` AS useraccepted from manage_callback_v2_log where reminder_id='"+results[count].id+"' and status='ACCEPT' limit 1", function(err, resultAcceptedUser, fields)
+			var sort_by_col = req.query.col;
+			var order_by = "";
+			var search_by_val = "1";
+			var search_by_col_accepted_to = req.query.fcol[4];
+			if(sort_by_col[4] !== undefined)
+			{
+				var order_by_val = (sort_by_col[4] == 0) ? "ASC" : "DESC";
+				order_by = " ORDER BY useraccepted "+order_by_val;
+			}
+			var resp = url.parse(req.url);
+			var query_resp = resp['query'].split("&");
+			for(i in query_resp)
+			{
+				re = /\[(.*)\]/i;
+				var qry_val = query_resp[i];
+				if(qry_val.includes("fcol["))
+				{
+					var result = qry_val.match(re);
+					if(result)
+					{
+						var search_arr = qry_val.split("=");
+						if(result[0] == 4)
+						{
+							var search_by_col_accepted_to = search_arr[1];
+						}
+					}
+				}
+			}
+			if(search_by_col_accepted_to !== undefined)
+			{
+				search_by_val = " user LIKE '%"+search_by_col_accepted_to+"%'";
+			}
+			var accepted_user_qry = conn.query("select `user` AS useraccepted from manage_callback_v2_log where "+search_by_val+" AND reminder_id='"+results[count].id+"' and status='ACCEPT'"+order_by+" limit 1", function(err, resultAcceptedUser, fields)
 			{
 				if(resultAcceptedUser.length)
 					results[count].user_accepted = resultAcceptedUser[0].useraccepted;
 				else
-					results[count].user_accepted = results[count].useraccepted;
+					results[count].user_accepted = "-";
 				count++;
 		        if (count < results.length) {
 		            getUserAccepted(count, results, callback);
@@ -201,23 +403,23 @@ app.get("/", function(req, res, next) {
 						last_button = "<button class='lightbox btn btn-default btn-xs' href='ajaxCalls/callbacks/callback_actions.php?reminder_id="+results[i].id+"&lightbox[iframe]=true&amp;lightbox[width]=60p&amp;lightbox[height]=80p&amp;lightbox[modal]=true'><i class='fa fa-list' aria-hidden='true'></i></button>";
 						host_msg = results[i].host;
 						host_msg += info_links(results[i].host);
-		        		resp_data.push(host_msg);
-		        		resp_data.push(results[i].sent_by);
-		        		resp_data.push(results[i].department);
-		        		resp_data.push(results[i].first_user);
-		        		resp_data.push(results[i].user_accepted);
-		        		resp_data.push(results[i].notes);
-		        		resp_data.push(callback_time);
-		        		resp_data.push(callback_status);
-		        		resp_data.push(overdue);
-		        		resp_data.push(last_button);
-		        		formed_data['data'] = resp_data;
-		        		response.push(resp_data); 
+						formed_data["Host"] = host_msg;
+						formed_data["Arranged_By"] = results[i].sent_by;
+						formed_data["Department"] = results[i].department;
+						formed_data["Assigned_To"] = results[i].first_user;
+						formed_data["Accepted_to_call_by"] = results[i].user_accepted;
+						formed_data["Callback_notes"] = results[i].notes;
+						formed_data["Callback_time"] = callback_time;
+						formed_data["Callback_Status"] = callback_status;
+						formed_data["Overdue"] = overdue;
+						formed_data["Action_log"] = last_button;
+		        		response.push(formed_data);
 		        	}
-		        	final_response['recordsTotal'] = total_results_count;
-					final_response['recordsFiltered'] = total_results_count;
-		        	final_response["data"] = response;
-		        	final_response["draw"] = draw;
+		        	//console.log(response);
+
+		        	final_response['total_rows'] = total_results_count;
+		        	final_response['headers'] = ["Host", "Arranged_By", "Department", "Assigned_To", "Accepted_to_call_by", "Callback_notes", "Callback_time", "Callback_Status", "Overdue", "Action_log"];
+		      		final_response['rows'] = response;
     				res.jsonp(final_response);
 		        }
 			})

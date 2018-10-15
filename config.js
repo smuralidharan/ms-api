@@ -25,7 +25,7 @@ var config = {
 /* Live Access */
 var config = {
 	database: {
-		host:	  'web-app-db.cuf10uh9d9r6.eu-west-2.rds.amazonaws.com', 	// database host
+		host:	  'main-db.touch2success.local', 	// database host
 		user: 	  'ms_db_user', 		// your database username
 		password: '27ZB[6(p,hv5,;E?', 		// your database password
 		port: 	  3306, 		// default MySQL port
